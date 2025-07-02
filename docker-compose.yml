@@ -12,17 +12,16 @@ services:
     volumes:
       - ./source:/source:rw
       - editor-node-modules:/app/editor/node_modules
-      - preview-node-modules:/app/preview/node_modules
     environment:
-      - GIT_REPO=${GIT_REPO:-}
-      - GIT_BRANCH=${GIT_BRANCH:-main}
+      - GIT_REPO=https://github.com/sahil28032005/e-commerse-frontend.git
+      - GIT_BRANCH=main
       - GIT_USERNAME=${GIT_USERNAME:-}
       - GIT_TOKEN=${GIT_TOKEN:-}
       - AUTO_SYNC=${AUTO_SYNC:-false}
       - SYNC_INTERVAL=${SYNC_INTERVAL:-60}
       - USER_ID=${USER_ID:-default}
       - PROJECT_ID=${PROJECT_ID:-default}
-      - SOURCE_TYPE=${SOURCE_TYPE:-local} # local, git, or s3
+      - SOURCE_TYPE=git # Using git instead of local
       - S3_BUCKET=${S3_BUCKET:-}
       - S3_KEY=${S3_KEY:-}
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY:-}
@@ -42,4 +41,3 @@ services:
 
 volumes:
   editor-node-modules:
-  preview-node-modules: 

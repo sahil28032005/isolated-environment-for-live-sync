@@ -18,6 +18,15 @@ if [ "$SOURCE_TYPE" = "git" ] && [ -n "$GIT_REPO" ]; then
         git config --global user.email "$GIT_USERNAME@users.noreply.github.com"
     fi
     
+    # Remove preview directory if it exists
+    if [ -d "$PREVIEW_DIR" ]; then
+        echo "Removing existing preview directory..."
+        rm -rf $PREVIEW_DIR
+    fi
+    
+    # Create preview directory
+    mkdir -p $PREVIEW_DIR
+    
     # Clone the repository
     git clone --branch ${GIT_BRANCH:-main} $GIT_REPO $PREVIEW_DIR
     

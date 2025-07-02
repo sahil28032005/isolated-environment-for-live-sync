@@ -27,12 +27,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 // File system operations
 app.get('/api/files', (req, res) => {
   const dirPath = req.query.path || '';
-  // Use SOURCE_DIR instead of PREVIEW_DIR for file listing
-  const fullPath = path.join(SOURCE_DIR, dirPath);
+  // Use PREVIEW_DIR for file listing when using Git source
+  const sourceType = process.env.SOURCE_TYPE || 'local';
+  const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
+  const fullPath = path.join(baseDir, dirPath);
   
   try {
-    console.log('Loading files from source directory:', fullPath);
-    const files = listFilesRecursively(fullPath, SOURCE_DIR);
+    console.log(`Loading files from ${sourceType} directory:`, fullPath);
+    const files = listFilesRecursively(fullPath, baseDir);
     console.log('Files found:', JSON.stringify(files));
     res.json(files);
   } catch (error) {
@@ -47,8 +49,10 @@ app.get('/api/file', (req, res) => {
     return res.status(400).json({ error: 'File path is required' });
   }
   
-  // Use SOURCE_DIR instead of PREVIEW_DIR for file access
-  const fullPath = path.join(SOURCE_DIR, filePath);
+  // Use appropriate directory based on source type
+  const sourceType = process.env.SOURCE_TYPE || 'local';
+  const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
+  const fullPath = path.join(baseDir, filePath);
   
   try {
     console.log('Reading file:', fullPath);
@@ -68,8 +72,10 @@ app.post('/api/file', (req, res) => {
     return res.status(400).json({ error: 'File path is required' });
   }
   
-  // Use SOURCE_DIR instead of PREVIEW_DIR for file writing
-  const fullPath = path.join(SOURCE_DIR, filePath);
+  // Use appropriate directory based on source type
+  const sourceType = process.env.SOURCE_TYPE || 'local';
+  const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
+  const fullPath = path.join(baseDir, filePath);
   
   try {
     console.log('Writing to file:', fullPath);
@@ -81,13 +87,15 @@ app.post('/api/file', (req, res) => {
     
     fs.writeFileSync(fullPath, content);
     
-    // Also write to preview directory
-    const previewPath = path.join(PREVIEW_DIR, filePath);
-    const previewDirPath = path.dirname(previewPath);
-    if (!fs.existsSync(previewDirPath)) {
-      fs.mkdirSync(previewDirPath, { recursive: true });
+    // If using local source, also write to preview directory
+    if (sourceType === 'local') {
+      const previewPath = path.join(PREVIEW_DIR, filePath);
+      const previewDirPath = path.dirname(previewPath);
+      if (!fs.existsSync(previewDirPath)) {
+        fs.mkdirSync(previewDirPath, { recursive: true });
+      }
+      fs.writeFileSync(previewPath, content);
     }
-    fs.writeFileSync(previewPath, content);
     
     res.json({ success: true });
     
@@ -106,21 +114,25 @@ app.delete('/api/file', (req, res) => {
     return res.status(400).json({ error: 'File path is required' });
   }
   
-  // Use SOURCE_DIR instead of PREVIEW_DIR for file deletion
-  const fullPath = path.join(SOURCE_DIR, filePath);
+  // Use appropriate directory based on source type
+  const sourceType = process.env.SOURCE_TYPE || 'local';
+  const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
+  const fullPath = path.join(baseDir, filePath);
   
   try {
     console.log('Deleting file:', fullPath);
     fs.unlinkSync(fullPath);
     
-    // Also delete from preview directory
-    try {
-      const previewPath = path.join(PREVIEW_DIR, filePath);
-      if (fs.existsSync(previewPath)) {
-        fs.unlinkSync(previewPath);
+    // If using local source, also delete from preview directory
+    if (sourceType === 'local') {
+      try {
+        const previewPath = path.join(PREVIEW_DIR, filePath);
+        if (fs.existsSync(previewPath)) {
+          fs.unlinkSync(previewPath);
+        }
+      } catch (previewError) {
+        console.error('Error deleting from preview directory:', previewError);
       }
-    } catch (previewError) {
-      console.error('Error deleting from preview directory:', previewError);
     }
     
     res.json({ success: true });
