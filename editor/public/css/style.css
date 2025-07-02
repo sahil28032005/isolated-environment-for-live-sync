@@ -1,0 +1,294 @@
+/* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 250px;
+  background-color: #252526;
+  color: #d4d4d4;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1e1e1e;
+}
+
+.sidebar-header {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-header h2 {
+  font-size: 1.2em;
+}
+
+.sidebar-header button {
+  background: none;
+  border: none;
+  color: #d4d4d4;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.sidebar-header button:hover {
+  color: #ffffff;
+}
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.file-tree ul {
+  list-style-type: none;
+  padding-left: 15px;
+}
+
+.file-tree li {
+  padding: 3px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.file-tree li:hover {
+  background-color: #2a2d2e;
+}
+
+.file-tree li.selected {
+  background-color: #37373d;
+}
+
+.file-tree .folder {
+  color: #c09553;
+}
+
+.file-tree .file {
+  color: #d4d4d4;
+}
+
+.file-tree .file-icon {
+  margin-right: 5px;
+}
+
+/* Main Content Styles */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #252526;
+  border-bottom: 1px solid #333;
+  padding: 5px 10px;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  flex: 1;
+}
+
+.tab {
+  padding: 5px 15px;
+  background-color: #2d2d2d;
+  color: #d4d4d4;
+  border: none;
+  margin-right: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.tab.active {
+  background-color: #1e1e1e;
+  border-top: 2px solid #0078d7;
+}
+
+.tab .close-tab {
+  margin-left: 8px;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.tab .close-tab:hover {
+  opacity: 1;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button, .actions a {
+  padding: 5px 10px;
+  background-color: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.actions button:hover, .actions a:hover {
+  background-color: #1177bb;
+}
+
+#editor {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Status Bar */
+.status-bar {
+  height: 22px;
+  background-color: #007acc;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 0.8em;
+}
+
+/* Context Menu */
+.context-menu {
+  display: none;
+  position: absolute;
+  background-color: #252526;
+  border: 1px solid #454545;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.context-menu ul {
+  list-style-type: none;
+}
+
+.context-menu li {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #d4d4d4;
+}
+
+.context-menu li:hover {
+  background-color: #2a2d2e;
+}
+
+.context-menu li i {
+  margin-right: 8px;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1001;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: #252526;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #454545;
+  width: 300px;
+  color: #d4d4d4;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: white;
+}
+
+#modal-input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  background-color: #3c3c3c;
+  border: 1px solid #555;
+  color: #d4d4d4;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.modal-buttons button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#modal-cancel {
+  background-color: #3c3c3c;
+  color: #d4d4d4;
+}
+
+#modal-confirm {
+  background-color: #0e639c;
+  color: white;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+} 

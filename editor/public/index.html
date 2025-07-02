@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flarenet Editor</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Files</h2>
+        <button id="refresh-files" title="Refresh Files"><i class="fas fa-sync-alt"></i></button>
+      </div>
+      <div class="file-tree" id="file-tree"></div>
+    </div>
+    <div class="main-content">
+      <div class="editor-header">
+        <div class="tabs" id="tabs"></div>
+        <div class="actions">
+          <button id="rebuild-btn" title="Rebuild Preview"><i class="fas fa-hammer"></i> Rebuild</button>
+          <button id="sync-btn" title="Sync Changes"><i class="fas fa-cloud-upload-alt"></i> Sync</button>
+          <a href="http://localhost:5000" target="_blank" class="preview-btn" title="Open Preview">
+            <i class="fas fa-external-link-alt"></i> Preview
+          </a>
+        </div>
+      </div>
+      <div id="editor"></div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div id="status-message">Ready</div>
+  </div>
+
+  <div id="context-menu" class="context-menu">
+    <ul>
+      <li id="new-file"><i class="fas fa-file"></i> New File</li>
+      <li id="new-folder"><i class="fas fa-folder"></i> New Folder</li>
+      <li id="rename"><i class="fas fa-edit"></i> Rename</li>
+      <li id="delete"><i class="fas fa-trash"></i> Delete</li>
+    </ul>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="modal-title">New File</h2>
+      <input type="text" id="modal-input" placeholder="Enter name">
+      <div class="modal-buttons">
+        <button id="modal-cancel">Cancel</button>
+        <button id="modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Monaco Editor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/editor.js"></script>
+</body>
+</html> 
