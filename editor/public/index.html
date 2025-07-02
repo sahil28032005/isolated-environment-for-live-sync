@@ -56,9 +56,25 @@
     </div>
   </div>
 
-  <!-- Load Monaco Editor -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+  <!-- Load Socket.IO first (without defer to ensure it loads before other scripts) -->
   <script src="/socket.io/socket.io.js"></script>
+  
+  <!-- Confirm Socket.IO is loaded before proceeding -->
+  <script>
+    console.log('Checking Socket.IO availability...');
+    if (typeof io === 'function') {
+      console.log('✅ Socket.IO loaded successfully');
+      window.socketIOLoaded = true;
+    } else {
+      console.error('❌ Socket.IO not available');
+      window.socketIOLoaded = false;
+    }
+  </script>
+  
+  <!-- Load Monaco Editor after Socket.IO -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+  
+  <!-- Load our editor script last -->
   <script src="js/editor.js"></script>
 </body>
 </html> 

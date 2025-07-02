@@ -1,35 +1,45 @@
+console.log("editor.js loaded");
+
 // Global variables
 let editor;
 let openFiles = {};
 let currentFile = null;
 let fileTree = {};
 let contextMenuTarget = null;
-
-// Initialize Socket.io
 let socket;
-// Wait for the socket.io library to load
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof io !== 'undefined') {
-    socket = io();
+
+// Initialize Socket.IO immediately (no need to wait for DOMContentLoaded)
+console.log("Initializing Socket.IO...");
+console.log("Socket.IO loaded status:", window.socketIOLoaded);
+
+if (typeof io === 'function') {
+  console.log("Socket.IO function found, connecting...");
+  socket = io(); // connects to current host
+  
+  socket.on('connect', () => {
+    console.log('🟢 Connected to Socket.IO server');
     setupSocketListeners();
-  } else {
-    console.error('Socket.io not loaded yet');
-    // Try again in a second
-    setTimeout(() => {
-      if (typeof io !== 'undefined') {
-        socket = io();
-        setupSocketListeners();
-      } else {
-        console.error('Socket.io failed to load');
-      }
-    }, 1000);
-  }
-});
+    loadFileTree(); // Load files once connected
+  });
+  
+  socket.on('connect_error', (error) => {
+    console.error('❌ Socket.IO connection error:', error);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('🔴 Disconnected from Socket.IO server');
+  });
+} else {
+  console.error('❌ Socket.IO not loaded - cannot initialize connection');
+}
 
 // Setup socket event listeners
 function setupSocketListeners() {
+  console.log('Setting up file event listeners');
+  
   // Listen for file changes
   socket.on('fileChanged', (data) => {
+    console.log('📄 File changed:', data);
     if (openFiles[data.path] && currentFile !== data.path) {
       // Reload file content if it's open but not the current file
       loadFile(data.path);
@@ -38,6 +48,7 @@ function setupSocketListeners() {
   });
   
   socket.on('fileDeleted', (data) => {
+    console.log('🗑️ File deleted:', data);
     if (openFiles[data.path]) {
       closeFile(data.path);
     }
@@ -45,11 +56,11 @@ function setupSocketListeners() {
     updateStatusMessage(`File deleted: ${data.path}`);
   });
   
-  socket.on('fileAdded', () => {
+  socket.on('fileAdded', (data) => {
+    console.log('➕ File added:', data);
     loadFileTree();
+    updateStatusMessage(`File added: ${data ? data.path : ''}`);
   });
-  
-  console.log('Socket listeners set up successfully');
 }
 
 // Initialize Monaco Editor
