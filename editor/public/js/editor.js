@@ -7,6 +7,8 @@ let currentFile = null;
 let fileTree = {};
 let contextMenuTarget = null;
 let socket;
+let term;
+let terminalFitAddon;
 
 // Initialize Socket.IO immediately (no need to wait for DOMContentLoaded)
 console.log("Initializing Socket.IO...");
@@ -61,6 +63,18 @@ function setupSocketListeners() {
     loadFileTree();
     updateStatusMessage(`File added: ${data ? data.path : ''}`);
   });
+  
+  // Terminal events
+  socket.on('terminal:data', (data) => {
+    if (term) {
+      term.write(data);
+    }
+  });
+  
+  socket.on('terminal:created', (data) => {
+    console.log('Terminal created with ID:', data.id);
+    updateStatusMessage('Terminal ready');
+  });
 }
 
 // Initialize Monaco Editor
@@ -90,7 +104,82 @@ require(['vs/editor/editor.main'], function() {
 
   // Set up event listeners
   setupEventListeners();
+  
+  // Initialize terminal
+  initTerminal();
 });
+
+// Initialize terminal
+function initTerminal() {
+  if (!window.Terminal) {
+    console.error('xterm.js not loaded');
+    return;
+  }
+  
+  // Create terminal
+  term = new Terminal({
+    cursorBlink: true,
+    theme: {
+      background: '#1e1e1e',
+      foreground: '#d4d4d4'
+    },
+    fontSize: 14,
+    fontFamily: 'Consolas, "Courier New", monospace',
+    convertEol: true
+  });
+  
+  // Add fit addon
+  if (window.FitAddon) {
+    terminalFitAddon = new FitAddon.FitAddon();
+    term.loadAddon(terminalFitAddon);
+  }
+  
+  // Open terminal
+  term.open(document.getElementById('terminal'));
+  
+  // Handle terminal input
+  term.onData(data => {
+    socket.emit('terminal:input', data);
+  });
+  
+  // Handle window resize
+  window.addEventListener('resize', resizeTerminal);
+  
+  // Create terminal on server
+  socket.emit('terminal:create');
+}
+
+// Resize terminal
+function resizeTerminal() {
+  if (term && terminalFitAddon) {
+    terminalFitAddon.fit();
+    const dimensions = terminalFitAddon.proposeDimensions();
+    if (dimensions) {
+      socket.emit('terminal:resize', dimensions);
+    }
+  }
+}
+
+// Toggle terminal
+function toggleTerminal() {
+  const terminalContainer = document.getElementById('terminal-container');
+  const isHidden = terminalContainer.classList.contains('hidden');
+  
+  if (isHidden) {
+    terminalContainer.classList.remove('hidden');
+    if (!term) {
+      initTerminal();
+    }
+    
+    // Create terminal session if it doesn't exist
+    socket.emit('terminal:create');
+    
+    // Resize terminal
+    setTimeout(resizeTerminal, 100);
+  } else {
+    terminalContainer.classList.add('hidden');
+  }
+}
 
 // Load file tree
 function loadFileTree() {
@@ -548,6 +637,14 @@ function setupEventListeners() {
   // Sync button
   document.getElementById('sync-btn').addEventListener('click', syncCode);
   
+  // Terminal button
+  document.getElementById('terminal-btn').addEventListener('click', toggleTerminal);
+  
+  // Terminal close button
+  document.getElementById('terminal-close').addEventListener('click', () => {
+    document.getElementById('terminal-container').classList.add('hidden');
+  });
+  
   // Context menu items
   document.getElementById('new-file').addEventListener('click', () => {
     if (contextMenuTarget && contextMenuTarget.type === 'directory') {
@@ -586,6 +683,12 @@ function setupEventListeners() {
       if (currentFile) {
         saveFile(currentFile);
       }
+    }
+    
+    // Ctrl+` to toggle terminal
+    if (e.ctrlKey && e.key === '`') {
+      e.preventDefault();
+      toggleTerminal();
     }
   });
 } 
