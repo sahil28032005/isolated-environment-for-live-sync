@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-# Install git and other dependencies
-RUN apk add --no-cache git openssh-client bash curl
+# Install git, terminal dependencies and other tools
+RUN apk add --no-cache git openssh-client bash curl python3 make g++ build-base linux-headers
 
 # Set working directory
 WORKDIR /app

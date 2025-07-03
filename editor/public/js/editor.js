@@ -7,6 +7,8 @@ let currentFile = null;
 let fileTree = {};
 let contextMenuTarget = null;
 let socket;
+let term;
+let terminalFitAddon;
 
 // Initialize Socket.IO immediately (no need to wait for DOMContentLoaded)
 console.log("Initializing Socket.IO...");
@@ -61,6 +63,18 @@ function setupSocketListeners() {
     loadFileTree();
     updateStatusMessage(`File added: ${data ? data.path : ''}`);
   });
+  
+  // Terminal events
+  socket.on('terminal:data', (data) => {
+    if (term) {
+      term.write(data);
+    }
+  });
+  
+  socket.on('terminal:created', (data) => {
+    console.log('Terminal created with ID:', data.id);
+    updateStatusMessage('Terminal ready');
+  });
 }
 
 // Initialize Monaco Editor
@@ -90,7 +104,109 @@ require(['vs/editor/editor.main'], function() {
 
   // Set up event listeners
   setupEventListeners();
+  
+  // Initialize terminal
+  initTerminal();
 });
+
+// Initialize terminal
+function initTerminal() {
+  if (typeof Terminal === 'undefined') {
+    console.error('xterm.js not loaded');
+    return;
+  }
+  
+  // Create terminal
+  term = new Terminal({
+    cursorBlink: true,
+    theme: {
+      background: '#1e1e1e',
+      foreground: '#d4d4d4'
+    },
+    fontSize: 14,
+    fontFamily: 'Consolas, "Courier New", monospace',
+    convertEol: true
+  });
+  
+  // Add fit addon
+  if (window.FitAddon && window.FitAddon.FitAddon) {
+    terminalFitAddon = new window.FitAddon.FitAddon();
+    term.loadAddon(terminalFitAddon);
+  } else {
+    console.warn('FitAddon not available');
+  }
+  
+  // Open terminal
+  const terminalElement = document.getElementById('terminal');
+  term.open(terminalElement);
+  
+  // Handle terminal input
+  term.onData(data => {
+    if (socket && socket.connected) {
+      socket.emit('terminal:input', data);
+    } else {
+      console.error('Socket not connected, cannot send terminal input');
+    }
+  });
+  
+  // Handle window resize
+  window.addEventListener('resize', resizeTerminal);
+  
+  // Create terminal on server
+  if (socket && socket.connected) {
+    socket.emit('terminal:create');
+  } else {
+    console.error('Socket not connected, cannot create terminal');
+  }
+  
+  // Focus terminal
+  setTimeout(() => {
+    term.focus();
+  }, 100);
+}
+
+// Resize terminal
+function resizeTerminal() {
+  if (term && terminalFitAddon) {
+    try {
+      terminalFitAddon.fit();
+      const dimensions = terminalFitAddon.proposeDimensions();
+      if (dimensions && socket && socket.connected) {
+        socket.emit('terminal:resize', dimensions);
+      }
+    } catch (e) {
+      console.error('Error resizing terminal:', e);
+    }
+  }
+}
+
+// Toggle terminal
+function toggleTerminal() {
+  const terminalContainer = document.getElementById('terminal-container');
+  const isHidden = terminalContainer.classList.contains('hidden');
+  
+  if (isHidden) {
+    terminalContainer.classList.remove('hidden');
+    if (!term) {
+      initTerminal();
+    } else {
+      // Focus terminal
+      setTimeout(() => {
+        term.focus();
+      }, 100);
+    }
+    
+    // Create terminal session if it doesn't exist
+    if (socket && socket.connected) {
+      socket.emit('terminal:create');
+    }
+    
+    // Resize terminal
+    setTimeout(resizeTerminal, 100);
+  } else {
+    terminalContainer.classList.add('hidden');
+  }
+}
 
 // Load file tree
 function loadFileTree() {
@@ -548,6 +664,14 @@ function setupEventListeners() {
   // Sync button
   document.getElementById('sync-btn').addEventListener('click', syncCode);
   
+  // Terminal button
+  document.getElementById('terminal-btn').addEventListener('click', toggleTerminal);
+  
+  // Terminal close button
+  document.getElementById('terminal-close').addEventListener('click', () => {
+    document.getElementById('terminal-container').classList.add('hidden');
+  });
+  
   // Context menu items
   document.getElementById('new-file').addEventListener('click', () => {
     if (contextMenuTarget && contextMenuTarget.type === 'directory') {
@@ -586,6 +710,12 @@ function setupEventListeners() {
       if (currentFile) {
         saveFile(currentFile);
       }
+    }
+    
+    // Ctrl+` to toggle terminal
+    if (e.ctrlKey && e.key === '`') {
+      e.preventDefault();
+      toggleTerminal();
     }
   });
 } 

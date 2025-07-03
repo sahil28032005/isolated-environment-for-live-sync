@@ -6,7 +6,8 @@ const socketIo = require('socket.io');
 const chokidar = require('chokidar');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
+const os = require('os');
 
 // Environment variables
 const PREVIEW_DIR = process.env.PREVIEW_DIR || '/app/preview';
@@ -203,12 +204,126 @@ watcher
     io.emit('fileAdded', { path: relativePath });
   });
 
+// Terminal handling
+const terminals = {};
+const terminalLogs = {};
+
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('Client connected');
   
+  // Terminal handling
+  socket.on('terminal:create', () => {
+    // Determine which shell to use based on platform
+    const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
+    const sourceType = process.env.SOURCE_TYPE || 'local';
+    const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
+    
+    console.log(`Creating terminal with shell: ${shell}, in directory: ${baseDir}`);
+    
+    // Create terminal process
+    const term = spawn(shell, [], {
+      cwd: baseDir,
+      env: process.env,
+      shell: true
+    });
+    
+    const terminalId = socket.id;
+    terminals[terminalId] = term;
+    terminalLogs[terminalId] = '';
+    
+    // Terminal data event
+    term.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log(`Terminal ${terminalId} stdout: ${output.length} bytes`);
+      socket.emit('terminal:data', output);
+      terminalLogs[terminalId] += output;
+    });
+    
+    term.stderr.on('data', (data) => {
+      const output = data.toString();
+      console.log(`Terminal ${terminalId} stderr: ${output.length} bytes`);
+      socket.emit('terminal:data', output);
+      terminalLogs[terminalId] += output;
+    });
+    
+    term.on('exit', (code) => {
+      console.log(`Terminal ${terminalId} exited with code ${code}`);
+      socket.emit('terminal:data', `\r\nProcess exited with code ${code}\r\n`);
+      // Restart shell when it exits
+      setTimeout(() => {
+        if (terminals[terminalId]) {
+          const newTerm = spawn(shell, [], {
+            cwd: baseDir,
+            env: process.env,
+            shell: true
+          });
+          terminals[terminalId] = newTerm;
+          
+          newTerm.stdout.on('data', (data) => {
+            const output = data.toString();
+            socket.emit('terminal:data', output);
+            terminalLogs[terminalId] += output;
+          });
+          
+          newTerm.stderr.on('data', (data) => {
+            const output = data.toString();
+            socket.emit('terminal:data', output);
+            terminalLogs[terminalId] += output;
+          });
+        }
+      }, 1000);
+    });
+    
+    // Send terminal ID to client
+    socket.emit('terminal:created', { id: terminalId });
+    socket.emit('terminal:data', `\r\nWelcome to Flarenet Terminal\r\n`);
+    
+    // Handle terminal input from client
+    socket.on('terminal:input', (data) => {
+      console.log(`Terminal ${terminalId} input: ${data.length} bytes`);
+      if (terminals[terminalId] && terminals[terminalId].stdin) {
+        try {
+          terminals[terminalId].stdin.write(data);
+        } catch (err) {
+          console.error(`Error writing to terminal ${terminalId}:`, err);
+          socket.emit('terminal:data', `\r\nError: ${err.message}\r\n`);
+        }
+      } else {
+        console.error(`Terminal ${terminalId} not found or stdin not available`);
+        socket.emit('terminal:data', `\r\nTerminal not available. Try refreshing the page.\r\n`);
+      }
+    });
+    
+    // Handle terminal resize
+    socket.on('terminal:resize', (dimensions) => {
+      console.log(`Terminal ${terminalId} resize:`, dimensions);
+      // Not fully supported with spawn, but log the event
+      if (terminals[terminalId] && terminals[terminalId].resize) {
+        try {
+          terminals[terminalId].resize(dimensions.cols, dimensions.rows);
+        } catch (err) {
+          console.error(`Error resizing terminal ${terminalId}:`, err);
+        }
+      }
+    });
+  });
+  
   socket.on('disconnect', () => {
     console.log('Client disconnected');
+    
+    // Clean up terminal
+    const terminalId = socket.id;
+    if (terminals[terminalId]) {
+      try {
+        terminals[terminalId].kill();
+        console.log(`Terminal ${terminalId} killed`);
+      } catch (err) {
+        console.error('Error killing terminal process:', err);
+      }
+      delete terminals[terminalId];
+      delete terminalLogs[terminalId];
+    }
   });
 });
 

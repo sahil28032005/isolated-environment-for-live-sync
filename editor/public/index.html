@@ -6,6 +6,7 @@
   <title>Flarenet Editor</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
 </head>
 <body>
   <div class="container">
@@ -22,12 +23,20 @@
         <div class="actions">
           <button id="rebuild-btn" title="Rebuild Preview"><i class="fas fa-hammer"></i> Rebuild</button>
           <button id="sync-btn" title="Sync Changes"><i class="fas fa-cloud-upload-alt"></i> Sync</button>
+          <button id="terminal-btn" title="Toggle Terminal"><i class="fas fa-terminal"></i> Terminal</button>
           <a href="http://localhost:5000" target="_blank" class="preview-btn" title="Open Preview">
             <i class="fas fa-external-link-alt"></i> Preview
           </a>
         </div>
       </div>
       <div id="editor"></div>
+      <div id="terminal-container" class="terminal-container hidden">
+        <div class="terminal-header">
+          <span>Terminal</span>
+          <button id="terminal-close" title="Close Terminal"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="terminal"></div>
+      </div>
     </div>
   </div>
 
@@ -71,7 +80,15 @@
     }
   </script>
   
-  <!-- Load Monaco Editor after Socket.IO -->
+  <!-- Load xterm.js before Monaco to avoid conflicts -->
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script>
+    // Create a global FitAddon object to avoid AMD loader conflicts
+    window.FitAddon = {};
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  
+  <!-- Load Monaco Editor after xterm -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
   
   <!-- Load our editor script last -->
