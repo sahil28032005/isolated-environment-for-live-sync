@@ -2,10 +2,16 @@
 
 A containerized environment for isolated, live editing of web applications with real-time preview.
 
+## Architecture
+
+![Flarenet Architecture](assets/arch.png)
+
 ## Features
 
 - Monaco Editor for code editing (on port 3000)
 - Live preview of the application (on port 5000)
+- Terminal integration for running commands directly in the environment
+- File system explorer for easy navigation
 - Support for multiple source options:
   - Local directory mounting
   - Git repository cloning
@@ -19,7 +25,13 @@ A containerized environment for isolated, live editing of web applications with 
 
 ### Using Docker Compose
 
-1. Create a `.env` file with your configuration:
+1. Copy the example environment file:
+
+```bash
+cp env.example .env
+```
+
+2. Edit the `.env` file with your configuration:
 
 ```
 USER_ID=user123
@@ -28,13 +40,13 @@ SOURCE_TYPE=local
 SOURCE_PATH=./my-source-code
 ```
 
-2. Run the container:
+3. Run the container:
 
 ```bash
 docker-compose up -d
 ```
 
-3. Access the editor at http://localhost:3000 and the preview at http://localhost:5000
+4. Access the editor at http://localhost:3000 and the preview at http://localhost:5000
 
 ### Using Docker directly
 
@@ -46,6 +58,32 @@ docker run -d \
   -e PROJECT_ID=project456 \
   --name flarenet-editor-user123 \
   flarenet-editor
+```
+
+## Project Structure
+
+```
+Flarenet Isolated env/
+├── assets/                  # Static assets
+│   └── arch.png             # Architecture diagram
+├── docker-compose.yml       # Docker Compose configuration
+├── Dockerfile               # Container definition
+├── editor/                  # Monaco editor implementation
+│   ├── package.json         # Editor dependencies
+│   ├── public/              # Static web files
+│   │   ├── css/             # Stylesheets
+│   │   ├── index.html       # Editor HTML entry point
+│   │   └── js/              # Client-side JavaScript
+│   └── server.js            # Editor backend server
+├── env.example              # Example environment variables
+├── README.md                # This documentation
+├── scripts/                 # Utility scripts
+│   ├── rebuild-preview.sh   # Rebuild the preview environment
+│   ├── setup.sh             # Initial setup script
+│   ├── start-services.sh    # Start all services
+│   └── sync-code.sh         # Sync code changes
+└── source/                  # Default source code directory
+    └── index.html           # Default source entry point
 ```
 
 ## Configuration Options
@@ -79,14 +117,13 @@ docker run -d \
 docker build -t flarenet-editor .
 ```
 
-## Architecture
-
-The isolated environment consists of:
+## System Components
 
 1. **Monaco Editor**: A web-based code editor running on port 3000
 2. **Preview Server**: Serves the application on port 5000
 3. **File Watcher**: Monitors file changes for live reload
 4. **Sync Service**: Synchronizes changes back to source
+5. **Terminal Service**: Provides command-line access within the container
 
 ## Extending the Environment
 
@@ -109,6 +146,13 @@ For specialized language support, you may need to modify the Dockerfile and scri
 - Resource limits prevent container abuse
 - Isolated network namespaces keep environments separate
 - Git/S3 credentials are stored securely as environment variables
+
+## Scripts
+
+- **rebuild-preview.sh**: Rebuilds the preview environment after code changes
+- **setup.sh**: Performs initial setup of the environment
+- **start-services.sh**: Starts all required services
+- **sync-code.sh**: Synchronizes code changes back to the source
 
 ## License
 

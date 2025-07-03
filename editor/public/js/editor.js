@@ -111,7 +111,7 @@ require(['vs/editor/editor.main'], function() {
 
 // Initialize terminal
 function initTerminal() {
-  if (!window.Terminal) {
+  if (typeof Terminal === 'undefined') {
     console.error('xterm.js not loaded');
     return;
   }
@@ -129,33 +129,53 @@ function initTerminal() {
   });
   
   // Add fit addon
-  if (window.FitAddon) {
-    terminalFitAddon = new FitAddon.FitAddon();
+  if (window.FitAddon && window.FitAddon.FitAddon) {
+    terminalFitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(terminalFitAddon);
+  } else {
+    console.warn('FitAddon not available');
   }
   
   // Open terminal
-  term.open(document.getElementById('terminal'));
+  const terminalElement = document.getElementById('terminal');
+  term.open(terminalElement);
   
   // Handle terminal input
   term.onData(data => {
-    socket.emit('terminal:input', data);
+    if (socket && socket.connected) {
+      socket.emit('terminal:input', data);
+    } else {
+      console.error('Socket not connected, cannot send terminal input');
+    }
   });
   
   // Handle window resize
   window.addEventListener('resize', resizeTerminal);
   
   // Create terminal on server
-  socket.emit('terminal:create');
+  if (socket && socket.connected) {
+    socket.emit('terminal:create');
+  } else {
+    console.error('Socket not connected, cannot create terminal');
+  }
+  
+  // Focus terminal
+  setTimeout(() => {
+    term.focus();
+  }, 100);
 }
 
 // Resize terminal
 function resizeTerminal() {
   if (term && terminalFitAddon) {
-    terminalFitAddon.fit();
-    const dimensions = terminalFitAddon.proposeDimensions();
-    if (dimensions) {
-      socket.emit('terminal:resize', dimensions);
+    try {
+      terminalFitAddon.fit();
+      const dimensions = terminalFitAddon.proposeDimensions();
+      if (dimensions && socket && socket.connected) {
+        socket.emit('terminal:resize', dimensions);
+      }
+    } catch (e) {
+      console.error('Error resizing terminal:', e);
     }
   }
 }
@@ -169,10 +189,17 @@ function toggleTerminal() {
     terminalContainer.classList.remove('hidden');
     if (!term) {
       initTerminal();
+    } else {
+      // Focus terminal
+      setTimeout(() => {
+        term.focus();
+      }, 100);
     }
     
     // Create terminal session if it doesn't exist
-    socket.emit('terminal:create');
+    if (socket && socket.connected) {
+      socket.emit('terminal:create');
+    }
     
     // Resize terminal
     setTimeout(resizeTerminal, 100);

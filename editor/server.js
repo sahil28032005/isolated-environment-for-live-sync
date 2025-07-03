@@ -219,6 +219,8 @@ io.on('connection', (socket) => {
     const sourceType = process.env.SOURCE_TYPE || 'local';
     const baseDir = sourceType === 'git' ? PREVIEW_DIR : SOURCE_DIR;
     
+    console.log(`Creating terminal with shell: ${shell}, in directory: ${baseDir}`);
+    
     // Create terminal process
     const term = spawn(shell, [], {
       cwd: baseDir,
@@ -233,17 +235,20 @@ io.on('connection', (socket) => {
     // Terminal data event
     term.stdout.on('data', (data) => {
       const output = data.toString();
+      console.log(`Terminal ${terminalId} stdout: ${output.length} bytes`);
       socket.emit('terminal:data', output);
       terminalLogs[terminalId] += output;
     });
     
     term.stderr.on('data', (data) => {
       const output = data.toString();
+      console.log(`Terminal ${terminalId} stderr: ${output.length} bytes`);
       socket.emit('terminal:data', output);
       terminalLogs[terminalId] += output;
     });
     
     term.on('exit', (code) => {
+      console.log(`Terminal ${terminalId} exited with code ${code}`);
       socket.emit('terminal:data', `\r\nProcess exited with code ${code}\r\n`);
       // Restart shell when it exits
       setTimeout(() => {
@@ -276,14 +281,31 @@ io.on('connection', (socket) => {
     
     // Handle terminal input from client
     socket.on('terminal:input', (data) => {
+      console.log(`Terminal ${terminalId} input: ${data.length} bytes`);
       if (terminals[terminalId] && terminals[terminalId].stdin) {
-        terminals[terminalId].stdin.write(data);
+        try {
+          terminals[terminalId].stdin.write(data);
+        } catch (err) {
+          console.error(`Error writing to terminal ${terminalId}:`, err);
+          socket.emit('terminal:data', `\r\nError: ${err.message}\r\n`);
+        }
+      } else {
+        console.error(`Terminal ${terminalId} not found or stdin not available`);
+        socket.emit('terminal:data', `\r\nTerminal not available. Try refreshing the page.\r\n`);
       }
     });
     
-    // Handle terminal resize - not supported with spawn, but keep the event for compatibility
-    socket.on('terminal:resize', () => {
-      // Not supported with spawn
+    // Handle terminal resize
+    socket.on('terminal:resize', (dimensions) => {
+      console.log(`Terminal ${terminalId} resize:`, dimensions);
+      // Not fully supported with spawn, but log the event
+      if (terminals[terminalId] && terminals[terminalId].resize) {
+        try {
+          terminals[terminalId].resize(dimensions.cols, dimensions.rows);
+        } catch (err) {
+          console.error(`Error resizing terminal ${terminalId}:`, err);
+        }
+      }
     });
   });
   
@@ -295,6 +317,7 @@ io.on('connection', (socket) => {
     if (terminals[terminalId]) {
       try {
         terminals[terminalId].kill();
+        console.log(`Terminal ${terminalId} killed`);
       } catch (err) {
         console.error('Error killing terminal process:', err);
       }
